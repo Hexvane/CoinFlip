@@ -29,6 +29,8 @@ TextLayer *help_text;
 
 DictationSession *dictation_session;
 
+Question questions[14];
+
 int selected = 1;
 int height = 10;
 static char last_text[512];
@@ -268,15 +270,7 @@ void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *c
     switch(cell_index->section)
 		{
 			case 0:
-				switch(cell_index->row)
-				{
-					case 0:
-						menu_cell_basic_draw(ctx, cell_layer, "What should I do?", "", NULL);
-						break;
-					case 1:
-						menu_cell_basic_draw(ctx, cell_layer, "What should I eat?", "", NULL);
-						break;
-				}
+				menu_cell_basic_draw(ctx, cell_layer, questions[cell_index->row].question_text, NULL, NULL);
 				break;
 			case 1:
 				menu_cell_basic_draw(ctx, cell_layer, "test", NULL, NULL);

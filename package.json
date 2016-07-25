@@ -2,7 +2,7 @@
     "author": "gibson@hougland.net",
     "dependencies": {},
     "keywords": [],
-    "name": "reddit-2.1",
+    "name": "coin-flip",
     "pebble": {
         "capabilities": [
             ""
