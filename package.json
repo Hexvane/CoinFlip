@@ -18,7 +18,9 @@
             "watchtoken",
             "requestType",
             "questionSubmitResult",
-            "answerSubmitResult"
+            "answerSubmitResult",
+            "answerText",
+            "questionID"
         ],
         "projectType": "native",
         "resources": {

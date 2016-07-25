@@ -7,6 +7,7 @@ typedef struct {
     char watchtoken[1][30];
     char answers[4][48];
     uint8_t amount_of_answers;
+		char id[1][6];
 } Question;
 
 typedef enum {

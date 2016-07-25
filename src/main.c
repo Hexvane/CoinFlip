@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "main.h"
+#include "questionslayer.h"
 
 #define MENU_NUM_ITEMS 4
 #define MENU_NUM_SECTIONS 1
@@ -32,6 +33,7 @@ DictationSession *dictation_session;
 
 int selected = 1;
 int height = 10;
+int answer_row_pushed;
 static char last_text[512];
 
 Question questions[AMOUNT_OF_QUESTIONS];
@@ -184,7 +186,7 @@ void title_click_handler(ClickRecognizerRef recognizer, void *context)
 
 void menu_select_handler(ClickRecognizerRef recognizer, void *context)
 {
-
+	window_stack_push(answers, true);
 }
 
 void title_cfg_provider(void *context)
@@ -216,6 +218,10 @@ void process_tuple(Tuple *t){
     to go into the questions array
     */
 
+		else if(key == MESSAGE_KEY_answerText){
+        strncpy(currentQuestion.id[0], t->value->cstring, sizeof(currentQuestion.id[0]));
+    }
+	
     else if(key == MESSAGE_KEY_questionText){
         strncpy(currentQuestion.question_text[0], t->value->cstring, sizeof(currentQuestion.question_text[0]));
     }
@@ -314,7 +320,8 @@ void search_unload(Window *search)
 
 void answers_load(Window *search)
 {
-
+	setup_answer_layer(answers);
+	menu_setup(questions[answer_row_pushed]);
 }
 
 void answers_unload(Window *search)
@@ -388,7 +395,8 @@ void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *c
 
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
 {
-    //Launch question window for cell_index->row
+		answer_row_pushed = cell_index->row;
+    window_stack_push(answers, true);
 }
 
 void setup_menu_layer(Window *questionsWindow)
