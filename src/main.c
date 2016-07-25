@@ -18,6 +18,7 @@ BitmapLayer *search_layer;
 GBitmap *search_bitmap;
 
 SimpleMenuLayer *main_menu_layer;
+MenuLayer *questions_layer;
 SimpleMenuItem main_menu_items[MENU_NUM_ITEMS];
 SimpleMenuSection main_menu_sections[MENU_NUM_SECTIONS];
 
@@ -86,6 +87,12 @@ static void search_select_callback(int index, void *ctx)
   dictation_session_start(dictation_session);
 }
 
+static void questions_select_callback(int index, void *ctx)
+{
+	setup_menu_layer(questions);
+	window_stack_push(questions, true);
+}
+
 static void help_select_callback(int index, void *ctx)
 {
 	window_stack_push(help, true);
@@ -107,7 +114,7 @@ void menu_load(Window *menu)
 	
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Questions",
-		//.callback = //callback to what you want this item to do when clicked
+		.callback = questions_select_callback,
 	};
 	
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
@@ -217,6 +224,88 @@ void help_load(Window *search)
 void help_unload(Window *search)
 {
 	text_layer_destroy(help_text);
+}
+
+uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) 
+{
+	return 1;
+}
+
+uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+{
+    switch(section_index)
+		{
+			case 0:
+				return 1;
+			case 1:
+				return 1;
+			default:
+				return 0;
+		}
+}
+
+int16_t menu_get_header_height_callback(MenuLayer *questions_layer, uint16_t section_index, void *data) 
+{
+    return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) 
+{
+    switch(section_index)
+		{
+			case 0:
+				menu_cell_basic_header_draw(ctx, cell_layer, "Questions");
+				break;
+			case 1:
+				menu_cell_basic_header_draw(ctx, cell_layer, "Other Text");
+				break;
+			
+		}
+}
+
+void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) 
+{
+    switch(cell_index->section)
+		{
+			case 0:
+				switch(cell_index->row)
+				{
+					case 0:
+						menu_cell_basic_draw(ctx, cell_layer, "What should I do?", "", NULL);
+						break;
+					case 1:
+						menu_cell_basic_draw(ctx, cell_layer, "What should I eat?", "", NULL);
+						break;
+				}
+				break;
+			case 1:
+				menu_cell_basic_draw(ctx, cell_layer, "test", NULL, NULL);
+				break;
+		}
+}
+
+void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+{
+	
+}
+
+void setup_menu_layer(Window *questions) 
+{
+	Layer *window_layer = window_get_root_layer(questions);
+
+    questions_layer = menu_layer_create(GRect(0, 0, 144, 168));
+    menu_layer_set_callbacks(questions_layer, NULL, (MenuLayerCallbacks){
+        .get_num_sections = menu_get_num_sections_callback,
+        .get_num_rows = menu_get_num_rows_callback,
+        .get_header_height = menu_get_header_height_callback,
+        .draw_header = menu_draw_header_callback,
+        .draw_row = menu_draw_row_callback,
+        .select_click = menu_select_callback,
+    });
+
+    menu_layer_set_click_config_onto_window(questions_layer, questions);
+
+    layer_add_child(window_layer, menu_layer_get_layer(questions_layer));
 }
 
 int main()
