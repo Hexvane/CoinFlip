@@ -2,27 +2,37 @@
     "author": "gibson@hougland.net",
     "dependencies": {},
     "keywords": [],
-    "name": "coin-flip",
+    "name": "reddit-2.1",
     "pebble": {
         "capabilities": [
             ""
         ],
         "displayName": "Reddit 2.1",
         "enableMultiJS": true,
-        "messageKeys": [],
+        "messageKeys": [
+            "questionText",
+            "questionAnswer0",
+            "questionAnswer1",
+            "questionAnswer2",
+            "questionAnswer3",
+            "watchtoken",
+            "requestType",
+            "questionSubmitResult",
+            "answerSubmitResult"
+        ],
         "projectType": "native",
         "resources": {
             "media": [
                 {
-                    "file": "images/Microphone",
-                    "name": "MIC_ICON",
+                    "file": "images/Title",
+                    "menuIcon": true,
+                    "name": "REDDIT_TITLE_IMAGE",
                     "targetPlatforms": null,
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/Title",
-                    "menuIcon": true,
-                    "name": "REDDIT_TITLE_IMAGE",
+                    "file": "images/Microphone",
+                    "name": "MIC_ICON",
                     "targetPlatforms": null,
                     "type": "bitmap"
                 }

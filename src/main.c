@@ -4,11 +4,12 @@
 #define MENU_NUM_ITEMS 4
 #define MENU_NUM_SECTIONS 1
 
+void setup_menu_layer(Window *questionsWindow);
 
 Window *title;
 Window *menu;
 Window *search;
-Window *questions;
+Window *questionsWindow;
 Window *answers;
 Window *help;
 
@@ -29,12 +30,13 @@ TextLayer *help_text;
 
 DictationSession *dictation_session;
 
-Question questions[14];
-
 int selected = 1;
 int height = 10;
 static char last_text[512];
 
+Question questions[AMOUNT_OF_QUESTIONS];
+Question currentQuestion;
+uint8_t questionStackCount = 0;
 
 char *get_readable_dictation_status(DictationSessionStatus status)
 {
@@ -62,15 +64,33 @@ char *get_readable_dictation_status(DictationSessionStatus status)
     return "Unknown";
 }
 
-void dictation_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context) 
+void sendQuestion(char *question)
+{
+	DictionaryIterator *iter;
+	app_message_outbox_begin(&iter);
+
+	if (iter == NULL) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Iter is NULL, refusing to send message.");
+		return;
+	}
+
+	dict_write_uint16(iter, MESSAGE_KEY_requestType, REQUEST_TYPE_SEND_QUESTION);
+	dict_write_cstring(iter, MESSAGE_KEY_questionText, question);
+	dict_write_end(iter);
+	
+	app_message_outbox_send();
+}
+
+void dictation_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context)
 {
     //It checks if it's all good and in the clear
-    if(status == DictationSessionStatusSuccess) 
+    if(status == DictationSessionStatusSuccess)
 		{
         //Prints the transcription into the buffer
         snprintf(last_text, sizeof(last_text), "%s", transcription);
         //Sets it onto the text layer
         text_layer_set_text(dictation_text, last_text);
+				sendQuestion(last_text);
 		}
 		else
 		{
@@ -81,7 +101,9 @@ void dictation_session_callback(DictationSession *session, DictationSessionStatu
         text_layer_set_text(dictation_text, failed_buff);
     }
 }
-	
+
+
+
 static void search_select_callback(int index, void *ctx)
 {
 	window_stack_push(search, true);
@@ -91,8 +113,9 @@ static void search_select_callback(int index, void *ctx)
 
 static void questions_select_callback(int index, void *ctx)
 {
-	setup_menu_layer(questions);
-	window_stack_push(questions, true);
+	setup_menu_layer(questionsWindow);
+	window_stack_push(questionsWindow, true);
+
 }
 
 static void help_select_callback(int index, void *ctx)
@@ -103,35 +126,35 @@ static void help_select_callback(int index, void *ctx)
 void menu_load(Window *menu)
 {
 	int num_menu_items = 0;
-	
+
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Ask",
 		.callback = search_select_callback,
 	};
-	
+
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Answers",
 		//.callback = //callback to what you want this item to do when clicked
 	};
-	
+
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Questions",
 		.callback = questions_select_callback,
 	};
-	
+
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Help",
 		.callback = help_select_callback,
 	};
-	
+
 	main_menu_sections[0] = (SimpleMenuSection) {
 		.num_items = MENU_NUM_ITEMS,
 		.items = main_menu_items
 	};
-	
+
 	GRect bounds = layer_get_bounds(window_get_root_layer(menu));
 	main_menu_layer = simple_menu_layer_create(bounds, menu, main_menu_sections, MENU_NUM_SECTIONS, NULL);
-	
+
 	layer_add_child(window_get_root_layer(menu), simple_menu_layer_get_layer(main_menu_layer));
 }
 
@@ -161,7 +184,7 @@ void title_click_handler(ClickRecognizerRef recognizer, void *context)
 
 void menu_select_handler(ClickRecognizerRef recognizer, void *context)
 {
-	
+
 }
 
 void title_cfg_provider(void *context)
@@ -171,9 +194,103 @@ void title_cfg_provider(void *context)
 	window_single_click_subscribe(BUTTON_ID_SELECT, title_click_handler);
 }
 
+void process_tuple(Tuple *t){
+    uint32_t key = t->key;
+    int value = t->value->int32;
+
+    if(key == MESSAGE_KEY_requestType){
+        switch(value){
+            //Clear the questions
+            case REQUEST_TYPE_GET_QUESTIONS:
+                for(int i = 0; i < AMOUNT_OF_QUESTIONS; i++){
+                    questions[i] = (Question){
+                        .amount_of_answers = 0
+                    };
+                }
+                break;
+        }
+    }
+
+    /*
+    Everything below this is copying the data to the currentQuestion struct for prep
+    to go into the questions array
+    */
+
+    else if(key == MESSAGE_KEY_questionText){
+        strncpy(currentQuestion.question_text[0], t->value->cstring, sizeof(currentQuestion.question_text[0]));
+    }
+    else if(key == MESSAGE_KEY_questionAnswer0){
+        if(strcmp(t->value->cstring, "") != 0){
+            strncpy(currentQuestion.answers[0], t->value->cstring, sizeof(currentQuestion.answers[0]));
+        }
+        currentQuestion.amount_of_answers++;
+    }
+    else if(key == MESSAGE_KEY_questionAnswer1){
+        if(strcmp(t->value->cstring, "") != 0){
+            strncpy(currentQuestion.answers[1], t->value->cstring, sizeof(currentQuestion.answers[1]));
+        }
+        currentQuestion.amount_of_answers++;
+    }
+    else if(key == MESSAGE_KEY_questionAnswer2){
+        if(strcmp(t->value->cstring, "") != 0){
+            strncpy(currentQuestion.answers[2], t->value->cstring, sizeof(currentQuestion.answers[2]));
+        }
+        currentQuestion.amount_of_answers++;
+    }
+    else if(key == MESSAGE_KEY_questionAnswer3){
+        if(strcmp(t->value->cstring, "") != 0){
+            strncpy(currentQuestion.answers[3], t->value->cstring, sizeof(currentQuestion.answers[3]));
+        }
+        currentQuestion.amount_of_answers++;
+    }
+    else if(key == MESSAGE_KEY_watchtoken){
+        strncpy(currentQuestion.watchtoken[0], t->value->cstring, sizeof(currentQuestion.watchtoken[0]));
+    }
+    else if(key == MESSAGE_KEY_questionSubmitResult){
+        bool successfulSubmission = (value == 1); //The question was submitted successfully
+        if(!successfulSubmission){
+            //Some error warning here
+        }
+    }
+    else if(key == MESSAGE_KEY_answerSubmitResult){
+        bool successfulSubmission = (value == 1); //The answer was submitted successfully
+        if(!successfulSubmission){
+            //Some error warning here
+        }
+    }
+}
+
+//When a message is received from the phone
+void appmessage_inbox(DictionaryIterator *iter, void *context){
+    APP_LOG(APP_LOG_LEVEL_INFO, "Got message from the phone.");
+
+    Tuple *t = dict_read_first(iter);
+    if(t){
+        process_tuple(t);
+    }
+    while(t != NULL){
+        t = dict_read_next(iter);
+        if(t){
+            process_tuple(t);
+        }
+    }
+
+    //It was a question and not any other type of message
+    if(strcmp(currentQuestion.question_text[0], "") != 0){
+        questions[questionStackCount] = currentQuestion;
+        questionStackCount++;
+				currentQuestion = (Question){
+					.amount_of_answers = 0
+			};
+    }
+}
+
 void app_init()
 {
 	window_set_click_config_provider(title, title_cfg_provider);
+
+    app_message_open(512, 512);
+    app_message_register_inbox_received(appmessage_inbox);
 }
 
 void search_load(Window *search)
@@ -182,7 +299,7 @@ void search_load(Window *search)
 	search_layer = bitmap_layer_create(GRect(0,0,144,180));
 	bitmap_layer_set_bitmap(search_layer, search_bitmap);
 	layer_add_child(window_get_root_layer(search), bitmap_layer_get_layer(search_layer));
-	
+
 	dictation_text = text_layer_create(GRect(10,10,144,168));
 	text_layer_set_text(dictation_text, last_text);
 	text_layer_set_text_color(dictation_text, GColorBlack);
@@ -197,22 +314,22 @@ void search_unload(Window *search)
 
 void answers_load(Window *search)
 {
-	
+
 }
 
 void answers_unload(Window *search)
 {
-	
+
 }
 
 void questions_load(Window *search)
 {
-	
+
 }
 
 void questions_unload(Window *search)
 {
-	
+
 }
 
 void help_load(Window *search)
@@ -228,64 +345,55 @@ void help_unload(Window *search)
 	text_layer_destroy(help_text);
 }
 
-uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data) 
+uint16_t menu_get_num_sections_callback(MenuLayer *menu_layer, void *data)
 {
 	return 1;
 }
 
-uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) 
+uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data)
 {
     switch(section_index)
 		{
 			case 0:
-				return 1;
-			case 1:
-				return 1;
+				return questionStackCount;
 			default:
 				return 0;
 		}
 }
 
-int16_t menu_get_header_height_callback(MenuLayer *questions_layer, uint16_t section_index, void *data) 
+int16_t menu_get_header_height_callback(MenuLayer *questions_layer, uint16_t section_index, void *data)
 {
     return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
-void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) 
+void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data)
 {
     switch(section_index)
 		{
 			case 0:
 				menu_cell_basic_header_draw(ctx, cell_layer, "Questions");
 				break;
-			case 1:
-				menu_cell_basic_header_draw(ctx, cell_layer, "Other Text");
-				break;
-			
 		}
 }
 
-void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) 
+void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data)
 {
     switch(cell_index->section)
 		{
 			case 0:
-				menu_cell_basic_draw(ctx, cell_layer, questions[cell_index->row].question_text, NULL, NULL);
-				break;
-			case 1:
-				menu_cell_basic_draw(ctx, cell_layer, "test", NULL, NULL);
+				menu_cell_basic_draw(ctx, cell_layer, questions[cell_index->row].question_text[0], questions[cell_index->row].watchtoken[0], NULL);
 				break;
 		}
 }
 
-void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) 
+void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data)
 {
-	
+    //Launch question window for cell_index->row
 }
 
-void setup_menu_layer(Window *questions) 
+void setup_menu_layer(Window *questionsWindow)
 {
-	Layer *window_layer = window_get_root_layer(questions);
+	Layer *window_layer = window_get_root_layer(questionsWindow);
 
     questions_layer = menu_layer_create(GRect(0, 0, 144, 168));
     menu_layer_set_callbacks(questions_layer, NULL, (MenuLayerCallbacks){
@@ -297,7 +405,7 @@ void setup_menu_layer(Window *questions)
         .select_click = menu_select_callback,
     });
 
-    menu_layer_set_click_config_onto_window(questions_layer, questions);
+    menu_layer_set_click_config_onto_window(questions_layer, questionsWindow);
 
     layer_add_child(window_layer, menu_layer_get_layer(questions_layer));
 }
@@ -308,19 +416,19 @@ int main()
 	menu = window_create();
 	search = window_create();
 	answers = window_create();
-	questions = window_create();
+	questionsWindow = window_create();
 	help = window_create();
-	
+
 	app_init();
-	
+
 	window_set_window_handlers(title, (WindowHandlers){.load = title_load, .unload = title_unload});
 	window_set_window_handlers(menu, (WindowHandlers){.load = menu_load, .unload = menu_unload});
 	window_set_window_handlers(search, (WindowHandlers){.load = search_load, .unload = search_unload});
 	window_set_window_handlers(answers, (WindowHandlers){.load = answers_load, .unload = answers_unload});
-	window_set_window_handlers(questions, (WindowHandlers){.load = questions_load, .unload = questions_unload});
+	window_set_window_handlers(questionsWindow, (WindowHandlers){.load = questions_load, .unload = questions_unload});
 	window_set_window_handlers(help, (WindowHandlers){.load = help_load, .unload = help_unload});
-	
+
 	window_stack_push(title, true);
-	
+
 	app_event_loop();
 }
