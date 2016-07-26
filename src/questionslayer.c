@@ -66,6 +66,8 @@ void sendAnswer(char *answer)
 		APP_LOG(APP_LOG_LEVEL_ERROR, "Iter is NULL, refusing to send message.");
 		return;
 	}
+	
+	APP_LOG(APP_LOG_LEVEL_ERROR, "%d hi", REQUEST_TYPE_SUBMIT_ANSWER);
 
 	dict_write_uint16(iter, MESSAGE_KEY_requestType, REQUEST_TYPE_SUBMIT_ANSWER);
 	dict_write_cstring(iter, MESSAGE_KEY_answerText, answer);
@@ -80,8 +82,8 @@ void answer_session_callback(DictationSession *session, DictationSessionStatus s
     //It checks if it's all good and in the clear
     if(status == DictationSessionStatusSuccess)
 		{
+			APP_LOG(APP_LOG_LEVEL_INFO, "got success %s", transcription);
 			sendAnswer(transcription);
-			window_stack_pop(true);
 			window_stack_pop(true);
 		}
 		else
@@ -94,16 +96,18 @@ void answer_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *
 {
     if(cell_index->section == 1 && cell_index->row == 0)
 		{
-			
-			DictationSession *dictation_session = dictation_session_create(512, answer_session_callback, NULL);
-  		dictation_session_start(dictation_session);
+			APP_LOG(APP_LOG_LEVEL_INFO, "got stuff");
+			DictationSession *answerSession = dictation_session_create(512, answer_session_callback, NULL);
+  		dictation_session_start(answerSession);
 		}
 }
 
 void menu_setup(Question question)
 {
 	menuQuestion = question;
-	menu_layer_reload_data(answer_layer);
+	if(answer_layer){
+		menu_layer_reload_data(answer_layer);
+	}
 }
 
 void setup_answer_layer(Window *answerWindow)

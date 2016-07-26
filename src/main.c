@@ -39,6 +39,7 @@ static char last_text[512];
 Question questions[AMOUNT_OF_QUESTIONS];
 Question currentQuestion;
 uint8_t questionStackCount = 0;
+uint8_t currentQuestionLoaded = 0;
 
 char *get_readable_dictation_status(DictationSessionStatus status)
 {
@@ -83,30 +84,36 @@ void sendQuestion(char *question)
 	app_message_outbox_send();
 }
 
+bool isMain = false;
+
 void dictation_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context)
 {
     //It checks if it's all good and in the clear
     if(status == DictationSessionStatusSuccess)
 		{
-        //Prints the transcription into the buffer
-        snprintf(last_text, sizeof(last_text), "%s", transcription);
-        //Sets it onto the text layer
-				sendQuestion(last_text);
+			if(isMain){
+				APP_LOG(APP_LOG_LEVEL_INFO, "got in main %s", transcription);
+					//Prints the transcription into the buffer
+					snprintf(last_text, sizeof(last_text), "%s", transcription);
+					//Sets it onto the text layer
+					sendQuestion(last_text);
+			}
+			else{
+				APP_LOG(APP_LOG_LEVEL_INFO, "Main issue rejected");
+			}
 		}
 		else
 		{
-        static char failed_buff[128];
-        //Prints why to the failed buffer
-        snprintf(failed_buff, sizeof(failed_buff), "Transcription failed because:\n%s", get_readable_dictation_status(status));
-        //Sets it onto the text layer
-        text_layer_set_text(dictation_text, failed_buff);
+        
     }
+	isMain = false;
 }
 
 
 
 static void search_select_callback(int index, void *ctx)
 {
+	isMain = true;
 	dictation_session = dictation_session_create(sizeof(last_text), dictation_session_callback, NULL);
   dictation_session_start(dictation_session);
 }
@@ -130,11 +137,6 @@ void menu_load(Window *menu)
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
 		.title = "Ask",
 		.callback = search_select_callback,
-	};
-
-	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
-		.title = "Answers",
-		//.callback = //callback to what you want this item to do when clicked
 	};
 
 	main_menu_items[num_menu_items++] = (SimpleMenuItem) {
@@ -299,6 +301,7 @@ void appmessage_inbox(DictionaryIterator *iter, void *context){
 	if(questions_layer){
 		menu_layer_reload_data(questions_layer);
 	}
+	menu_setup(questions[answer_row_pushed]);
 }
 
 void app_init()
