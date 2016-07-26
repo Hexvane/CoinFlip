@@ -2,7 +2,7 @@
 #include "main.h"
 #include "questionslayer.h"
 
-#define MENU_NUM_ITEMS 4
+#define MENU_NUM_ITEMS 3
 #define MENU_NUM_SECTIONS 1
 
 void setup_menu_layer(Window *questionsWindow);

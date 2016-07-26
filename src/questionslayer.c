@@ -77,18 +77,24 @@ void sendAnswer(char *answer)
 	app_message_outbox_send();
 }
 
+bool answer_session_running = false;
+
 void answer_session_callback(DictationSession *session, DictationSessionStatus status, char *transcription, void *context)
 {
     //It checks if it's all good and in the clear
     if(status == DictationSessionStatusSuccess)
 		{
-			APP_LOG(APP_LOG_LEVEL_INFO, "got success %s", transcription);
-			sendAnswer(transcription);
-			window_stack_pop(true);
+			if(answer_session_running)
+			{
+				APP_LOG(APP_LOG_LEVEL_INFO, "got success %s", transcription);
+				sendAnswer(transcription);
+				window_stack_pop(true);
+			}
 		}
 		else
 		{
     }
+	answer_session_running = false;
 }
 
 
@@ -97,6 +103,7 @@ void answer_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *
     if(cell_index->section == 1 && cell_index->row == 0)
 		{
 			APP_LOG(APP_LOG_LEVEL_INFO, "got stuff");
+			answer_session_running = true;
 			DictationSession *answerSession = dictation_session_create(512, answer_session_callback, NULL);
   		dictation_session_start(answerSession);
 		}
