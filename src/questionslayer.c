@@ -4,9 +4,12 @@
 MenuLayer *answer_layer;
 Question menuQuestion;
 
-
 uint16_t answer_get_num_sections_callback(MenuLayer *menu_layer, void *data)
 {
+	if(menuQuestion.amount_of_answers == 4)
+	{
+		return 1;
+	}
 	return 2;
 }
 
@@ -78,6 +81,8 @@ void answer_session_callback(DictationSession *session, DictationSessionStatus s
     if(status == DictationSessionStatusSuccess)
 		{
 			sendAnswer(transcription);
+			window_stack_pop(true);
+			window_stack_pop(true);
 		}
 		else
 		{

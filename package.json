@@ -2,12 +2,12 @@
     "author": "gibson@hougland.net",
     "dependencies": {},
     "keywords": [],
-    "name": "reddit-2.1",
+    "name": "coin-flip",
     "pebble": {
         "capabilities": [
             ""
         ],
-        "displayName": "Reddit 2.1",
+        "displayName": "Coin Flip",
         "enableMultiJS": true,
         "messageKeys": [
             "questionText",
@@ -25,6 +25,12 @@
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/logo",
+                    "name": "COIN_FLIP",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/Title",
                     "menuIcon": true,

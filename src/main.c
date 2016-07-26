@@ -91,7 +91,6 @@ void dictation_session_callback(DictationSession *session, DictationSessionStatu
         //Prints the transcription into the buffer
         snprintf(last_text, sizeof(last_text), "%s", transcription);
         //Sets it onto the text layer
-        text_layer_set_text(dictation_text, last_text);
 				sendQuestion(last_text);
 		}
 		else
@@ -108,7 +107,6 @@ void dictation_session_callback(DictationSession *session, DictationSessionStatu
 
 static void search_select_callback(int index, void *ctx)
 {
-	window_stack_push(search, true);
 	dictation_session = dictation_session_create(sizeof(last_text), dictation_session_callback, NULL);
   dictation_session_start(dictation_session);
 }
@@ -166,12 +164,20 @@ void menu_unload(Window *menu)
 	text_layer_destroy(select_text);
 }
 
+void splash_dismiss()
+{
+	window_stack_push(menu, true);
+	window_stack_remove(title, true);
+}
+
 void title_load(Window *title)
 {
-	title_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REDDIT_TITLE_IMAGE);
-	title_layer = bitmap_layer_create(GRect(0, 0, 144, 180));
+	title_bitmap = gbitmap_create_with_resource(RESOURCE_ID_COIN_FLIP);
+	title_layer = bitmap_layer_create(GRect(0, 0, 144, 168));
 	bitmap_layer_set_bitmap(title_layer, title_bitmap);
 	layer_add_child(window_get_root_layer(title), bitmap_layer_get_layer(title_layer));
+	
+	app_timer_register(1500, splash_dismiss, NULL);
 }
 
 void title_unload(Window *title)
@@ -209,6 +215,7 @@ void process_tuple(Tuple *t){
                         .amount_of_answers = 0
                     };
                 }
+								questionStackCount = 0;
                 break;
         }
     }
@@ -218,7 +225,7 @@ void process_tuple(Tuple *t){
     to go into the questions array
     */
 
-		else if(key == MESSAGE_KEY_answerText){
+		else if(key == MESSAGE_KEY_questionID){
         strncpy(currentQuestion.id[0], t->value->cstring, sizeof(currentQuestion.id[0]));
     }
 	
@@ -289,6 +296,9 @@ void appmessage_inbox(DictionaryIterator *iter, void *context){
 					.amount_of_answers = 0
 			};
     }
+	if(questions_layer){
+		menu_layer_reload_data(questions_layer);
+	}
 }
 
 void app_init()
@@ -301,21 +311,10 @@ void app_init()
 
 void search_load(Window *search)
 {
-	search_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MIC_ICON);
-	search_layer = bitmap_layer_create(GRect(0,0,144,180));
-	bitmap_layer_set_bitmap(search_layer, search_bitmap);
-	layer_add_child(window_get_root_layer(search), bitmap_layer_get_layer(search_layer));
-
-	dictation_text = text_layer_create(GRect(10,10,144,168));
-	text_layer_set_text(dictation_text, last_text);
-	text_layer_set_text_color(dictation_text, GColorBlack);
-	layer_add_child(window_get_root_layer(search), text_layer_get_layer(dictation_text));
 }
 
 void search_unload(Window *search)
 {
-	bitmap_layer_destroy(search_layer);
-	text_layer_destroy(dictation_text);
 }
 
 void answers_load(Window *search)
@@ -420,6 +419,7 @@ void setup_menu_layer(Window *questionsWindow)
 
 int main()
 {
+	//light_enable(true);
 	title = window_create();
 	menu = window_create();
 	search = window_create();
