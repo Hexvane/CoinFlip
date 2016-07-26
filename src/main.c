@@ -390,7 +390,7 @@ void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *c
     switch(cell_index->section)
 		{
 			case 0:
-				menu_cell_basic_draw(ctx, cell_layer, questions[cell_index->row].question_text[0], questions[cell_index->row].watchtoken[0], NULL);
+				menu_cell_basic_draw(ctx, cell_layer, questions[cell_index->row].question_text[0], NULL, NULL);
 				break;
 		}
 }
